@@ -1,0 +1,22 @@
+num_agents: 2
+max_episode_length: 100
+initial_mdp_states: [90, 9]
+initial_rm_states:
+  - [1, 2] # monolithic only (individual) start states
+  # - [10, 11]
+gamma: 0.97
+learning_rate: 0.0005
+vf_coef: 0.5
+max_grad_norm: 0.5
+target_kl: 0.1
+ent_coef: 0.1
+labeled_mdp_class: "ChallengeButtonsLabeled"
+eval_freq: 5000
+forbidden_events:
+  - []
+  - []
+required_events:
+  - []
+  - []
+ucb_c: 0.5
+ucb_gamma: 1

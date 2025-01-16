@@ -1,0 +1,20 @@
+num_agents: 2
+# initial_mdp_states: []
+initial_rm_states:
+  - [1, 2]
+  # - [8, 12]
+  # - [15, 21]
+  # - [22, 23]
+forbidden_events:
+  - []
+  - []
+required_events:
+  - ['c']
+  - ['c']
+labeled_mdp_class: "OvercookedInterestingCrampedLabeled"
+max_episode_length: 500
+eval_freq: 2500
+gamma: 0.99
+ucb_c: 0.5
+ent_coef: 0.01
+ucb_gamma: 1

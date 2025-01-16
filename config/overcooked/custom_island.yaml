@@ -1,0 +1,21 @@
+num_agents: 2
+# initial_mdp_states: []
+initial_rm_states:
+  - [2, 3]
+  # - [12, 8]
+  # - [4, 1]
+  # - [15, 21]
+  # - [22, 23]
+forbidden_events:
+  - []
+  - []
+required_events:
+  - ['c']
+  - ['c']
+labeled_mdp_class: "OvercookedCustomIslandLabeled"
+max_episode_length: 200
+eval_freq: 1500
+gamma: 0.99
+ucb_c: 0.5
+ent_coef: 0.01
+ucb_gamma: 1
