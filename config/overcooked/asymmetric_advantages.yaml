@@ -12,7 +12,7 @@ forbidden_events:
 required_events:
   - ['c']
   - ['c']
-labeled_mdp_class: "OvercookedCustomIslandLabeled"
+labeled_mdp_class: "OvercookedAsymmetricAdvantagesLabeled"
 max_episode_length: 200
 eval_freq: 1500
 gamma: 0.99

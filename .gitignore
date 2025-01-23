@@ -1,0 +1,5 @@
+*/__pycache__/*
+runs/
+wandb/
+logs/
+**/__pycache__/*

@@ -13,9 +13,9 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env.vec_monitor import VecMonitor
 from manager.manager import Manager
 from stable_baselines3.common.callbacks import EvalCallback, CallbackList
-from mdp_label_wrappers.easy_buttons_mdp_labeled import EasyButtonsLabeled
-from mdp_label_wrappers.challenge_buttons_mdp_labeled import ChallengeButtonsLabeled
-from mdp_label_wrappers.motivating_example_mdp_labeled import MotivatingExampleLabeled
+from mdp_label_wrappers.cooperative_buttons_mdp_labeled import CooperativeButtonsLabeled
+from mdp_label_wrappers.four_buttons_mdp_labeled import FourButtonsLabeled
+from mdp_label_wrappers.repairs_task_mdp_labeled import RepairsTaskLabeled
 from reward_machines.sparse_reward_machine import SparseRewardMachine
 from reward_machines.rm_generator import generate_rm_decompositions
 from stable_baselines3.common.monitor import Monitor
@@ -33,8 +33,8 @@ import torch as th
 from pettingzoo_product_env.overcooked_product_env import OvercookedProductEnv
 from pettingzoo_product_env.buttons_product_env import ButtonsProductEnv
 from jaxmarl.environments.overcooked import overcooked_layouts
-from mdp_label_wrappers.overcooked_custom_island_labeled import OvercookedCustomIslandLabeled
-from mdp_label_wrappers.overcooked_interesting_cramped_labeled import OvercookedInterestingCrampedLabeled
+from mdp_label_wrappers.overcooked_asymmetric_advantages_labeled import OvercookedAsymmetricAdvantagesLabeled
+from mdp_label_wrappers.overcooked_cramped_corridor_labeled import OvercookedCrampedCorridorLabeled
 
 ## WANDB KILL SWITCH
 # ps aux|grep wandb|grep -v grep | awk '{print $2}'|xargs kill -9

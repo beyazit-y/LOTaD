@@ -1,15 +1,12 @@
 import random
-import numpy as np
 from enum import Enum
 import copy
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.colors as mcolors
 import matplotlib.animation as animation
 
-"""
-Enum with the actions that the agent can execute
-"""
 class Actions(Enum):
     up    = 0 # move up
     right = 1 # move right
@@ -17,8 +14,7 @@ class Actions(Enum):
     left  = 3 # move left
     none  = 4 # none 
 
-class MotivatingButtonsEnv:
-
+class FourButtonsEnv():
 
     def __init__(self, env_config):
         """
@@ -34,45 +30,28 @@ class MotivatingButtonsEnv:
         env_settings : dict
             Dictionary of environment settings
         """
-
         env_settings = copy.deepcopy(env_config)
-        env_settings['Nr'] = 7
-        env_settings['Nc'] = 12
-        env_settings['initial_states'] = [54, 77, 3]
-        # env_settings['initial_states'] = [0, 1, 2]
+        env_settings['Nr'] = 10
+        env_settings['Nc'] = 10
 
-        env_settings['walls'] = [(5, 1), (5, 2), (5, 3), (5, 4), (5, 5), (5, 6),
-                                 (4, 6),
-                                 (3, 6),(3, 7),(3, 8),(3, 9),(3, 10),
-                                 (2, 6),
-                                 (1, 6)]
-        env_settings['hq_location'] = (2,3)
-        env_settings['yellow_button'] = (6,8)
-        env_settings['green_button'] = (6,0)
-        env_settings['red_button'] = (0,8)
-        yellow_tiles_x = range(0,7)
-        yellow_tiles_y = range(7,12)
-        env_settings['yellow_tiles'] = [(x,y) for x in yellow_tiles_x for y in yellow_tiles_y]
+        env_settings['walls'] = [
+                (3, 3), (3, 4), (3, 5), (3, 6), (3, 7),
+                (4, 3), (4, 7),
+                (5, 7),
+                (6, 3), (6, 7),
+                (7, 3), (7, 4), (7, 5), (7, 6), (7, 7)
+            ]
+        env_settings['yellow_button'] = (1, 1)
+        env_settings['green_button'] = (5, 5)
+        env_settings['red_button'] = (9, 9)
+        env_settings['blue_button'] = (1, 8)
+
+
         env_settings['p'] = 0.98
         self.env_settings = env_settings
         self.p = env_settings["p"]
-        MotivatingButtonsEnv.in_hazard = None
-
-        MotivatingButtonsEnv.signal = False
-        MotivatingButtonsEnv.a1hq = False
-        MotivatingButtonsEnv.a2hq = False
-        MotivatingButtonsEnv.a3hq = False
-
         self._load_map()
         self.fig, self.ax = None, None
-
-    def reset(self, *args):
-        MotivatingButtonsEnv.in_hazard = None
-        MotivatingButtonsEnv.signal = False
-        MotivatingButtonsEnv.a1hq = False
-        MotivatingButtonsEnv.a2hq = False
-        MotivatingButtonsEnv.a3hq = False
-        ...
 
     def _load_map(self):
         """
@@ -80,13 +59,11 @@ class MotivatingButtonsEnv:
         """
         self.Nr = self.env_settings['Nr']
         self.Nc = self.env_settings['Nc']
-
         self.objects = {}
-        self.objects[self.env_settings['hq_location']] = "hq" # goal location
         self.objects[self.env_settings['yellow_button']] = 'yb'
         self.objects[self.env_settings['green_button']] = 'gb'
         self.objects[self.env_settings['red_button']] = 'rb'
-        self.yellow_tiles = self.env_settings['yellow_tiles']
+        self.objects[self.env_settings['blue_button']] = 'bb'
 
         self.num_states = self.Nr * self.Nc
 
@@ -112,7 +89,10 @@ class MotivatingButtonsEnv:
             self.forbidden_transitions.add((row+1, col, Actions.up))
             self.forbidden_transitions.add((row-1, col, Actions.down))
 
-    def environment_step(self, s, a, agent_id):
+    def reset(self,*args):
+        ...
+
+    def environment_step(self, s, a, *args):
         """
         Execute action a from state s.
 
@@ -123,20 +103,14 @@ class MotivatingButtonsEnv:
         a : int
             Index representing the action being taken.
 
-        Outputs
-        -------
-        r : float
-            Reward achieved by taking action a from state s.
-        l : list
-            List of events occuring at this step.
         s_next : int
             Index of next state.
         """
-        s_next, _ = self.get_next_state(s,a, agent_id)
+        s_next, last_action = self.get_next_state(s,a)
 
         return s_next
-    
-    def get_next_state(self, s, a, agent_id):
+       
+    def get_next_state(self, s, a):
         """
         Get the next state in the environment given action a is taken from state s.
         Update the last action that was truly taken due to MDP slip.
@@ -201,21 +175,6 @@ class MotivatingButtonsEnv:
 
         s_next = self.get_state_from_description(row, col)
 
-        in_yellow = (row, col) in self.yellow_tiles
-
-        # check if agent is in the yellow region
-        if MotivatingButtonsEnv.in_hazard is None:
-            if in_yellow:
-                MotivatingButtonsEnv.in_hazard = agent_id
-        elif MotivatingButtonsEnv.in_hazard == agent_id:
-            if not in_yellow:
-                MotivatingButtonsEnv.in_hazard = None
-            
-        # If there's already an agent in the yellow region, don't allow the agent into the yellow region
-        if MotivatingButtonsEnv.in_hazard is not None and MotivatingButtonsEnv.in_hazard != agent_id:
-            if in_yellow:
-                s_next = s
-
         last_action = a_
         return s_next, last_action
 
@@ -236,7 +195,6 @@ class MotivatingButtonsEnv:
         s : int
             The index of the gridworld state corresponding to location (row, col).
         """
-
         return self.Nc * row + col
 
     def get_state_description(self, s):
@@ -255,7 +213,7 @@ class MotivatingButtonsEnv:
         col : int
             The column index of state s in the gridworld.
         """
-        row = np.floor_divide(s, self.Nc)
+        row = np.floor_divide(s, self.Nr)
         col = np.mod(s, self.Nc)
 
         return (row, col)
@@ -265,6 +223,7 @@ class MotivatingButtonsEnv:
         Returns the list with the actions that the agent can perform
         """
         return self.actions
+
 
 
     def show(self, state_dict, show_plot = True):
@@ -292,32 +251,24 @@ class MotivatingButtonsEnv:
         for y in range(self.Nr + 1):
             self.ax.axhline(y, color='black', linewidth=0.5)
 
-        # Draw colored tiles
-        tile_colors = {
-            'orange': mcolors.to_rgba('orange', 0.6),
-        }
-        for tile, color in zip([self.yellow_tiles], ['orange']):
-            for loc in tile:
-                rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor=tile_colors[color])
-                self.ax.add_patch(rect)
+        # Draw the walls
+        for loc in self.env_settings['walls']:
+            rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='black')
+            self.ax.add_patch(rect)
 
         # Draw buttons
         button_colors = {
             'yb': 'yellow',
             'gb': 'green',
-            'rb': 'red'
+            'rb': 'red',
+            "bb": 'blue'
         }
-        for button in ['yellow_button', 'green_button', 'red_button']:
+        for button in ['yellow_button', 'green_button', 'red_button', "blue_button"]:
             loc = self.env_settings[button]
             temp = button.split('_')
             color = button_colors[temp[0][0] + temp[1][0]]
             rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=2, edgecolor='black', facecolor=color)
             self.ax.add_patch(rect)
-
-        # Draw the goal location
-        loc = self.env_settings['hq_location']
-        rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=2, edgecolor='black', facecolor='blue')
-        self.ax.add_patch(rect)
 
         # Draw the agents
         for agent in state_dict:
@@ -325,18 +276,11 @@ class MotivatingButtonsEnv:
             rect = patches.Rectangle((col, self.Nr - row - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='grey')
             self.ax.add_patch(rect)
 
-        
-        # Draw the walls
-        for loc in self.env_settings['walls']:
-            rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='black')
-            self.ax.add_patch(rect)
-
-
         self.ax.set_xticks([])
         self.ax.set_yticks([])
         if show_plot:
             plt.pause(0.00001)
-        
+
     def animate(self, state_dicts, filename):
         """
         Create a GIF animation of the gridworld over a sequence of states.
@@ -345,7 +289,7 @@ class MotivatingButtonsEnv:
         ----------
         state_dicts : list of dict
             List of dictionaries of agent names and their corresponding states.
-        gif_filename : str
+        filename : str
             Filename for the output GIF file.
         """
         if not self.fig or not self.ax:

@@ -3,17 +3,17 @@ from jaxmarl.environments.overcooked import overcooked_layouts, layout_grid_to_d
 from jaxmarl import make
 import numpy as np
 
-class OvercookedInterestingCrampedLabeled(MDP_Labeler):
+class OvercookedAsymmetricAdvantagesLabeled(MDP_Labeler):
     def __init__(self, run_config):
-
+        
         counter_circuit_grid = """
-WWPWW
-WW WW
-O   O
-WA AB
-WWWXW
+WWWWWWWWW
+X  OWX  W
+W A P A W
+B   W   O
+WWWWWBWWW
 """
-
+        
         self.layout = layout_grid_to_dict(counter_circuit_grid)
         self.jax_env = make('overcooked', layout=self.layout, max_steps=run_config["max_episode_length"])
         self.render_mode = run_config["render_mode"]
@@ -43,22 +43,21 @@ WWWXW
         elif self.any_elem(obs[16], 2):
             return "o2"
         # pot locations is (2, 3)
-        elif self.any_elem_nonzero(obs[20]) or obs[21][0][2] == 1:
+        elif self.any_elem_nonzero(obs[20]) or obs[21][2][4] == 1:
             return "o3"
         else:
             return None
         
     def has_soup(self, obs):
         # ignore pot location at (2, 3)
-        if self.any_elem(obs[21], 1, 0, 2):
+        if self.any_elem(obs[21], 1, 2, 4):
             return "p"
         return None
-
+    
     def has_cooked(self, obs):
-        if obs[21][0][2] == 1:
+        if obs[21][2][4] == 1:
             return "c" 
         return None
-        
         
     def get_mdp_label(self, s_next, reward, *args):
         l = []
@@ -66,23 +65,23 @@ WWWXW
         obs = old_obs["agent_0"]
         obs = obs.transpose(2, 0, 1)
 
-
         # For onions
         onions = self.num_onions(obs)
         if onions:
             l.append(onions)
         # For soup plated
         soup = self.has_soup(obs)
-        if soup:        
+        if soup:
             l.append(soup)
         cooked = self.has_cooked(obs)
         if cooked:
             l.append(cooked)
        
+
         # For dish done
         if reward["agent_0"] > 0:
             l.append("d")
-
+        
         old_obs = self.trim_observation(old_obs)
         return old_obs, l
 

@@ -7,7 +7,6 @@ import matplotlib.patches as patches
 import matplotlib.colors as mcolors
 import matplotlib.animation as animation
 
-
 """
 Enum with the actions that the agent can execute
 """
@@ -18,7 +17,8 @@ class Actions(Enum):
     left  = 3 # move left
     none  = 4 # none 
 
-class EasyButtonsEnv:
+class RepairsTaskEnv:
+
 
     def __init__(self, env_config):
         """
@@ -36,37 +36,43 @@ class EasyButtonsEnv:
         """
 
         env_settings = copy.deepcopy(env_config)
-        env_settings['Nr'] = 10
-        env_settings['Nc'] = 10
-        env_settings['initial_states'] = [0, 5, 8]
-        env_settings['walls'] = [(0, 3), (1, 3), (2, 3), (3,3), (4,3), (5,3), (6,3), (7,3),
-                                    (7,4), (7,5), (7,6), (7,7), (7,8), (7,9),
-                                    (0,7), (1,7), (2,7), (3,7), (4,7) ]
-        env_settings['goal_location'] = (8,9)
-        env_settings['yellow_button'] = (0,2)
-        env_settings['green_button'] = (5,6)
-        env_settings['red_button'] = (6,9)
-        env_settings['yellow_tiles'] = [(2,4), (2,5), (2,6), (3,4), (3,5), (3,6)]
-        env_settings['green_tiles'] = [(2,8), (2,9), (3,8), (3,9)]
-        env_settings['red_tiles'] = [(8,5), (8,6), (8,7), (8,8), (9,5), (9,6), (9,7), (9,8)]
+        env_settings['Nr'] = 7
+        env_settings['Nc'] = 12
+        env_settings['initial_states'] = [54, 77, 3]
+        # env_settings['initial_states'] = [0, 1, 2]
+
+        env_settings['walls'] = [(5, 1), (5, 2), (5, 3), (5, 4), (5, 5), (5, 6),
+                                 (4, 6),
+                                 (3, 6),(3, 7),(3, 8),(3, 9),(3, 10),
+                                 (2, 6),
+                                 (1, 6)]
+        env_settings['hq_location'] = (2,3)
+        env_settings['yellow_button'] = (6,8)
+        env_settings['green_button'] = (6,0)
+        env_settings['red_button'] = (0,8)
+        yellow_tiles_x = range(0,7)
+        yellow_tiles_y = range(7,12)
+        env_settings['yellow_tiles'] = [(x,y) for x in yellow_tiles_x for y in yellow_tiles_y]
         env_settings['p'] = 0.98
         self.env_settings = env_settings
         self.p = env_settings["p"]
+        RepairsTaskEnv.in_hazard = None
 
+        RepairsTaskEnv.signal = False
+        RepairsTaskEnv.a1hq = False
+        RepairsTaskEnv.a2hq = False
+        RepairsTaskEnv.a3hq = False
 
         self._load_map()
         self.fig, self.ax = None, None
 
-    def reset(self, decomp_idx):
-        EasyButtonsEnv.a2_red_pressed = False
-        EasyButtonsEnv.a3_red_pressed = False
-        EasyButtonsEnv.yellow_pressed = False
-        EasyButtonsEnv.green_pressed = False
-        EasyButtonsEnv.red_pressed = False
-
-        rm_state_array = copy.deepcopy(self.env_settings["initial_rm_states"]) if np.array(self.env_settings["initial_rm_states"]).ndim == 2 else [copy.deepcopy(self.env_settings["initial_rm_states"])]
-
-        EasyButtonsEnv.u = {i+1:rm_state_array[decomp_idx][i] for i in range(len(self.env_settings["initial_states"]))}
+    def reset(self, *args):
+        RepairsTaskEnv.in_hazard = None
+        RepairsTaskEnv.signal = False
+        RepairsTaskEnv.a1hq = False
+        RepairsTaskEnv.a2hq = False
+        RepairsTaskEnv.a3hq = False
+        ...
 
     def _load_map(self):
         """
@@ -76,13 +82,11 @@ class EasyButtonsEnv:
         self.Nc = self.env_settings['Nc']
 
         self.objects = {}
-        self.objects[self.env_settings['goal_location']] = "g" # goal location
+        self.objects[self.env_settings['hq_location']] = "hq" # goal location
         self.objects[self.env_settings['yellow_button']] = 'yb'
         self.objects[self.env_settings['green_button']] = 'gb'
         self.objects[self.env_settings['red_button']] = 'rb'
         self.yellow_tiles = self.env_settings['yellow_tiles']
-        self.green_tiles = self.env_settings['green_tiles']
-        self.red_tiles = self.env_settings['red_tiles']
 
         self.num_states = self.Nr * self.Nc
 
@@ -131,7 +135,7 @@ class EasyButtonsEnv:
         s_next, _ = self.get_next_state(s,a, agent_id)
 
         return s_next
-
+    
     def get_next_state(self, s, a, agent_id):
         """
         Get the next state in the environment given action a is taken from state s.
@@ -197,15 +201,19 @@ class EasyButtonsEnv:
 
         s_next = self.get_state_from_description(row, col)
 
-        # If the appropriate button hasn't yet been pressed, don't allow the agent into the colored region
-        if agent_id == 1:
-            if (row, col) in self.red_tiles and not (EasyButtonsEnv.a2_red_pressed and EasyButtonsEnv.a3_red_pressed):
-                s_next = s
-        if agent_id == 2:
-            if (row, col) in self.yellow_tiles and not EasyButtonsEnv.yellow_pressed:
-                s_next = s
-        if agent_id == 3:
-            if (row, col) in self.green_tiles and not EasyButtonsEnv.green_pressed:
+        in_yellow = (row, col) in self.yellow_tiles
+
+        # check if agent is in the yellow region
+        if RepairsTaskEnv.in_hazard is None:
+            if in_yellow:
+                RepairsTaskEnv.in_hazard = agent_id
+        elif RepairsTaskEnv.in_hazard == agent_id:
+            if not in_yellow:
+                RepairsTaskEnv.in_hazard = None
+            
+        # If there's already an agent in the yellow region, don't allow the agent into the yellow region
+        if RepairsTaskEnv.in_hazard is not None and RepairsTaskEnv.in_hazard != agent_id:
+            if in_yellow:
                 s_next = s
 
         last_action = a_
@@ -228,6 +236,7 @@ class EasyButtonsEnv:
         s : int
             The index of the gridworld state corresponding to location (row, col).
         """
+
         return self.Nc * row + col
 
     def get_state_description(self, s):
@@ -246,7 +255,7 @@ class EasyButtonsEnv:
         col : int
             The column index of state s in the gridworld.
         """
-        row = np.floor_divide(s, self.Nr)
+        row = np.floor_divide(s, self.Nc)
         col = np.mod(s, self.Nc)
 
         return (row, col)
@@ -257,20 +266,6 @@ class EasyButtonsEnv:
         """
         return self.actions
 
-    # def get_last_action(self):
-    #     """
-    #     Returns agent's last action
-    #     """
-    #     return self.last_action
-
-    # def get_initial_state(self):
-    #     """
-    #     Outputs
-    #     -------
-    #     s_i : int
-    #         Index of agent's initial state.
-    #     """
-    #     return self.s_i
 
     def show(self, state_dict, show_plot = True):
         """
@@ -297,18 +292,11 @@ class EasyButtonsEnv:
         for y in range(self.Nr + 1):
             self.ax.axhline(y, color='black', linewidth=0.5)
 
-        # Draw the walls
-        for loc in self.env_settings['walls']:
-            rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='black')
-            self.ax.add_patch(rect)
-
         # Draw colored tiles
         tile_colors = {
-            'yellow': mcolors.to_rgba('yellow', 0.6),
-            'green': mcolors.to_rgba('green', 0.6),
-            'red': mcolors.to_rgba('red', 0.6),
+            'orange': mcolors.to_rgba('orange', 0.6),
         }
-        for tile, color in zip([self.yellow_tiles, self.green_tiles, self.red_tiles], ['yellow', 'green', 'red']):
+        for tile, color in zip([self.yellow_tiles], ['orange']):
             for loc in tile:
                 rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor=tile_colors[color])
                 self.ax.add_patch(rect)
@@ -327,7 +315,7 @@ class EasyButtonsEnv:
             self.ax.add_patch(rect)
 
         # Draw the goal location
-        loc = self.env_settings['goal_location']
+        loc = self.env_settings['hq_location']
         rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=2, edgecolor='black', facecolor='blue')
         self.ax.add_patch(rect)
 
@@ -337,11 +325,17 @@ class EasyButtonsEnv:
             rect = patches.Rectangle((col, self.Nr - row - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='grey')
             self.ax.add_patch(rect)
 
+        
+        # Draw the walls
+        for loc in self.env_settings['walls']:
+            rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='black')
+            self.ax.add_patch(rect)
+
+
         self.ax.set_xticks([])
         self.ax.set_yticks([])
         if show_plot:
             plt.pause(0.00001)
-
         
     def animate(self, state_dicts, filename):
         """

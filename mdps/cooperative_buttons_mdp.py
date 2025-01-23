@@ -1,12 +1,16 @@
 import random
+import numpy as np
 from enum import Enum
 import copy
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.colors as mcolors
 import matplotlib.animation as animation
 
+
+"""
+Enum with the actions that the agent can execute
+"""
 class Actions(Enum):
     up    = 0 # move up
     right = 1 # move right
@@ -14,7 +18,7 @@ class Actions(Enum):
     left  = 3 # move left
     none  = 4 # none 
 
-class ChallengeButtonsEnv():
+class CooperativeButtonsEnv:
 
     def __init__(self, env_config):
         """
@@ -30,28 +34,39 @@ class ChallengeButtonsEnv():
         env_settings : dict
             Dictionary of environment settings
         """
+
         env_settings = copy.deepcopy(env_config)
         env_settings['Nr'] = 10
         env_settings['Nc'] = 10
-
-        env_settings['walls'] = [
-                (3, 3), (3, 4), (3, 5), (3, 6), (3, 7),
-                (4, 3), (4, 7),
-                (5, 7),
-                (6, 3), (6, 7),
-                (7, 3), (7, 4), (7, 5), (7, 6), (7, 7)
-            ]
-        env_settings['yellow_button'] = (1, 1)
-        env_settings['green_button'] = (5, 5)
-        env_settings['red_button'] = (9, 9)
-        env_settings['blue_button'] = (1, 8)
-
-
+        env_settings['initial_states'] = [0, 5, 8]
+        env_settings['walls'] = [(0, 3), (1, 3), (2, 3), (3,3), (4,3), (5,3), (6,3), (7,3),
+                                    (7,4), (7,5), (7,6), (7,7), (7,8), (7,9),
+                                    (0,7), (1,7), (2,7), (3,7), (4,7) ]
+        env_settings['goal_location'] = (8,9)
+        env_settings['yellow_button'] = (0,2)
+        env_settings['green_button'] = (5,6)
+        env_settings['red_button'] = (6,9)
+        env_settings['yellow_tiles'] = [(2,4), (2,5), (2,6), (3,4), (3,5), (3,6)]
+        env_settings['green_tiles'] = [(2,8), (2,9), (3,8), (3,9)]
+        env_settings['red_tiles'] = [(8,5), (8,6), (8,7), (8,8), (9,5), (9,6), (9,7), (9,8)]
         env_settings['p'] = 0.98
         self.env_settings = env_settings
         self.p = env_settings["p"]
+
+
         self._load_map()
         self.fig, self.ax = None, None
+
+    def reset(self, decomp_idx):
+        CooperativeButtonsEnv.a2_red_pressed = False
+        CooperativeButtonsEnv.a3_red_pressed = False
+        CooperativeButtonsEnv.yellow_pressed = False
+        CooperativeButtonsEnv.green_pressed = False
+        CooperativeButtonsEnv.red_pressed = False
+
+        rm_state_array = copy.deepcopy(self.env_settings["initial_rm_states"]) if np.array(self.env_settings["initial_rm_states"]).ndim == 2 else [copy.deepcopy(self.env_settings["initial_rm_states"])]
+
+        CooperativeButtonsEnv.u = {i+1:rm_state_array[decomp_idx][i] for i in range(len(self.env_settings["initial_states"]))}
 
     def _load_map(self):
         """
@@ -59,11 +74,15 @@ class ChallengeButtonsEnv():
         """
         self.Nr = self.env_settings['Nr']
         self.Nc = self.env_settings['Nc']
+
         self.objects = {}
+        self.objects[self.env_settings['goal_location']] = "g" # goal location
         self.objects[self.env_settings['yellow_button']] = 'yb'
         self.objects[self.env_settings['green_button']] = 'gb'
         self.objects[self.env_settings['red_button']] = 'rb'
-        self.objects[self.env_settings['blue_button']] = 'bb'
+        self.yellow_tiles = self.env_settings['yellow_tiles']
+        self.green_tiles = self.env_settings['green_tiles']
+        self.red_tiles = self.env_settings['red_tiles']
 
         self.num_states = self.Nr * self.Nc
 
@@ -89,10 +108,7 @@ class ChallengeButtonsEnv():
             self.forbidden_transitions.add((row+1, col, Actions.up))
             self.forbidden_transitions.add((row-1, col, Actions.down))
 
-    def reset(self,*args):
-        ...
-
-    def environment_step(self, s, a, *args):
+    def environment_step(self, s, a, agent_id):
         """
         Execute action a from state s.
 
@@ -103,14 +119,20 @@ class ChallengeButtonsEnv():
         a : int
             Index representing the action being taken.
 
+        Outputs
+        -------
+        r : float
+            Reward achieved by taking action a from state s.
+        l : list
+            List of events occuring at this step.
         s_next : int
             Index of next state.
         """
-        s_next, last_action = self.get_next_state(s,a)
+        s_next, _ = self.get_next_state(s,a, agent_id)
 
         return s_next
-       
-    def get_next_state(self, s, a):
+
+    def get_next_state(self, s, a, agent_id):
         """
         Get the next state in the environment given action a is taken from state s.
         Update the last action that was truly taken due to MDP slip.
@@ -175,6 +197,17 @@ class ChallengeButtonsEnv():
 
         s_next = self.get_state_from_description(row, col)
 
+        # If the appropriate button hasn't yet been pressed, don't allow the agent into the colored region
+        if agent_id == 1:
+            if (row, col) in self.red_tiles and not (CooperativeButtonsEnv.a2_red_pressed and CooperativeButtonsEnv.a3_red_pressed):
+                s_next = s
+        if agent_id == 2:
+            if (row, col) in self.yellow_tiles and not CooperativeButtonsEnv.yellow_pressed:
+                s_next = s
+        if agent_id == 3:
+            if (row, col) in self.green_tiles and not CooperativeButtonsEnv.green_pressed:
+                s_next = s
+
         last_action = a_
         return s_next, last_action
 
@@ -224,7 +257,20 @@ class ChallengeButtonsEnv():
         """
         return self.actions
 
+    # def get_last_action(self):
+    #     """
+    #     Returns agent's last action
+    #     """
+    #     return self.last_action
 
+    # def get_initial_state(self):
+    #     """
+    #     Outputs
+    #     -------
+    #     s_i : int
+    #         Index of agent's initial state.
+    #     """
+    #     return self.s_i
 
     def show(self, state_dict, show_plot = True):
         """
@@ -256,19 +302,34 @@ class ChallengeButtonsEnv():
             rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor='black')
             self.ax.add_patch(rect)
 
+        # Draw colored tiles
+        tile_colors = {
+            'yellow': mcolors.to_rgba('yellow', 0.6),
+            'green': mcolors.to_rgba('green', 0.6),
+            'red': mcolors.to_rgba('red', 0.6),
+        }
+        for tile, color in zip([self.yellow_tiles, self.green_tiles, self.red_tiles], ['yellow', 'green', 'red']):
+            for loc in tile:
+                rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=1, edgecolor='black', facecolor=tile_colors[color])
+                self.ax.add_patch(rect)
+
         # Draw buttons
         button_colors = {
             'yb': 'yellow',
             'gb': 'green',
-            'rb': 'red',
-            "bb": 'blue'
+            'rb': 'red'
         }
-        for button in ['yellow_button', 'green_button', 'red_button', "blue_button"]:
+        for button in ['yellow_button', 'green_button', 'red_button']:
             loc = self.env_settings[button]
             temp = button.split('_')
             color = button_colors[temp[0][0] + temp[1][0]]
             rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=2, edgecolor='black', facecolor=color)
             self.ax.add_patch(rect)
+
+        # Draw the goal location
+        loc = self.env_settings['goal_location']
+        rect = patches.Rectangle((loc[1], self.Nr - loc[0] - 1), 1, 1, linewidth=2, edgecolor='black', facecolor='blue')
+        self.ax.add_patch(rect)
 
         # Draw the agents
         for agent in state_dict:
@@ -281,6 +342,7 @@ class ChallengeButtonsEnv():
         if show_plot:
             plt.pause(0.00001)
 
+        
     def animate(self, state_dicts, filename):
         """
         Create a GIF animation of the gridworld over a sequence of states.
@@ -289,7 +351,7 @@ class ChallengeButtonsEnv():
         ----------
         state_dicts : list of dict
             List of dictionaries of agent names and their corresponding states.
-        filename : str
+        gif_filename : str
             Filename for the output GIF file.
         """
         if not self.fig or not self.ax:
