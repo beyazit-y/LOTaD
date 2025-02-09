@@ -181,7 +181,7 @@ python make_plot.py --log_folder base-multi-rm/Final_logs/repairs_task/mono_abla
     └─ Iteration_1_seed_2
   ```
 - The script averages seeds to produce two lines on the resulting plot (LOTaD vs. LOTaD (No Overall)).
-
+**Happy experimenting with LOTaD!** For any questions or issues, please open an issue or pull request.
 ---
 ## Citing LOTaD 📜
 
@@ -195,5 +195,3 @@ If you use LOTaD in your work, please cite us as follows:
       year={2025}
     }
 
-
-**Happy experimenting with LOTaD!** For any questions or issues, please open an issue or pull request.
