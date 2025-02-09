@@ -183,5 +183,17 @@ python make_plot.py --log_folder base-multi-rm/Final_logs/repairs_task/mono_abla
 - The script averages seeds to produce two lines on the resulting plot (LOTaD vs. LOTaD (No Overall)).
 
 ---
+## Citing LOTaD 📜
+
+If you use LOTaD in your work, please cite us as follows:
+
+```bibtex
+@article{2025lotad,
+      title={Learning Symbolic Task Decompositions for Multi-Agent Teams},
+      author={Ameesh Shah and Niklas Lauffer and Thomas Chen and Nikhil Pitta and Sanjit Seshia},
+      journal={arXiv preprint arXiv:XXXXX.XXXXX},
+      year={2025}
+    }
+
 
 **Happy experimenting with LOTaD!** For any questions or issues, please open an issue or pull request.
