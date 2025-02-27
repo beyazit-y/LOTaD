@@ -191,7 +191,7 @@ If you use LOTaD in your work, please cite us as follows:
 @article{2025lotad,
       title={Learning Symbolic Task Decompositions for Multi-Agent Teams},
       author={Ameesh Shah and Niklas Lauffer and Thomas Chen and Nikhil Pitta and Sanjit Seshia},
-      journal={arXiv preprint arXiv:XXXXX.XXXXX},
+      journal={arXiv preprint arXiv:2502.13376},
       year={2025}
     }
 
