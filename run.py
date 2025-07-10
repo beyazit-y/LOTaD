@@ -145,7 +145,7 @@ if __name__ == "__main__":
                     # Only override args with wandb.config when sweep flag is True
                     run=wandb.init(
                         project=experiment,
-                        entity="reinforce-learn",
+                        entity="beyazit-y-berkeley-eecs",
                         config=config,
                         sync_tensorboard=True,
                         name=run_name)
@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
                     run = wandb.init(
                         project=experiment,
-                        entity="reinforce-learn",
+                        entity="beyazit-y-berkeley-eecs",
                         config=config,
                         sync_tensorboard=True,
                         name=run_name
