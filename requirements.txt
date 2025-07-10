@@ -132,7 +132,7 @@ tifffile==2024.7.21
 tinyscaler==1.2.7
 tk==0.1.0
 toolz==0.12.1
-torch==2.3.0
+torch<2.3.0
 tqdm==4.66.4
 trimesh==4.4.3
 typer==0.12.3
